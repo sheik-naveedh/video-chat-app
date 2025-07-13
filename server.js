@@ -10,7 +10,8 @@ const io = require("socket.io")(server, {
 });
 const { ExpressPeerServer } = require("peer");
 const opinions = {
-  debug: true,
+  debug: process.env.NODE_ENV !== 'production',
+  allow_discovery: true,
 }
 
 app.use("/peerjs", ExpressPeerServer(server, opinions));

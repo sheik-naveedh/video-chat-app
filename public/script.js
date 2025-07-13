@@ -21,42 +21,53 @@ showChat.addEventListener("click", () => {
 
 const user = prompt("Enter your name");
 
+// Determine if we're in production (Heroku) or local development
+const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+
 var peer = new Peer({
-  host: '127.0.0.1',
-  port: 3030,
+  host: isProduction ? window.location.hostname : '127.0.0.1',
+  port: isProduction ? 443 : 3030,
   path: '/peerjs',
+  secure: isProduction, // Use HTTPS for production
   config: {
     'iceServers': [
-      { url: 'stun:stun01.sipphone.com' },
-      { url: 'stun:stun.ekiga.net' },
-      { url: 'stun:stunserver.org' },
-      { url: 'stun:stun.softjoys.com' },
-      { url: 'stun:stun.voiparound.com' },
-      { url: 'stun:stun.voipbuster.com' },
-      { url: 'stun:stun.voipstunt.com' },
-      { url: 'stun:stun.voxgratia.org' },
-      { url: 'stun:stun.xten.com' },
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun2.l.google.com:19302' },
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun3.l.google.com:19302' },
+      { urls: 'stun:stun4.l.google.com:19302' },
+      // Free TURN servers (may have limitations)
       {
-        url: 'turn:192.158.29.39:3478?transport=udp',
-        credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
-        username: '28224511:1379330808'
+        urls: 'turn:openrelay.metered.ca:80',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
       },
       {
-        url: 'turn:192.158.29.39:3478?transport=tcp',
-        credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
-        username: '28224511:1379330808'
+        urls: 'turn:openrelay.metered.ca:443',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
+      },
+      {
+        urls: 'turn:openrelay.metered.ca:443?transport=tcp',
+        username: 'openrelayproject',
+        credential: 'openrelayproject',
       }
     ]
   },
-
   debug: 3
 });
 
 let myVideoStream;
+
+// Enhanced media access with better error handling
 navigator.mediaDevices
   .getUserMedia({
     audio: true,
-    video: true,
+    video: {
+      width: { min: 640, ideal: 1280, max: 1920 },
+      height: { min: 480, ideal: 720, max: 1080 }
+    },
   })
   .then((stream) => {
     myVideoStream = stream;
@@ -74,6 +85,10 @@ navigator.mediaDevices
     socket.on("user-connected", (userId) => {
       connectToNewUser(userId, stream);
     });
+  })
+  .catch((error) => {
+    console.error('Error accessing media devices:', error);
+    alert('Could not access camera/microphone. Please make sure to grant permissions and use HTTPS.');
   });
 
 const connectToNewUser = (userId, stream) => {
